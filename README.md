@@ -18,8 +18,8 @@ This project demonstrates how I cleaned the messy **Atlantic Hurricanes (Data Cl
 2. Run:
    ```sql
    sql/Hurricanes final clean.sql
-
 ---
+
 ##  This script will:
 
 - Normalize messy text, whitespace, and quotes.  
@@ -28,6 +28,7 @@ This project demonstrates how I cleaned the messy **Atlantic Hurricanes (Data Cl
 - Normalize pressure into both **hPa** and **inHg**.  
 - Convert damage estimates (million/billion/k) into numeric USD.  
 - Derive **DurationDays** and Saffir-Simpson **Category**.  
+---
 
 ## 📊 Before vs. After
 
@@ -36,6 +37,8 @@ This project demonstrates how I cleaned the messy **Atlantic Hurricanes (Data Cl
 
 **Cleaned data (sample)**  
 ![Cleaned sample](images/Cleaned%20sample.png)
+---
+
 ## 📝 Notes
 - Dates are exported as `YYYY-MM-DD`.  
 - `DurationDays` = difference between `StartDate` and `EndDate`.  
