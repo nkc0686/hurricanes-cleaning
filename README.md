@@ -29,12 +29,6 @@ This project demonstrates how I cleaned the messy **Atlantic Hurricanes (Data Cl
 - Convert damage estimates (million/billion/k) into numeric USD.  
 - Derive **DurationDays** and Saffir-Simpson **Category**.  
 
-## 📝 Notes
-- Dates are exported as `YYYY-MM-DD`.  
-- `DurationDays` = difference between `StartDate` and `EndDate`.  
-- Wind speeds and pressures are standardized for consistent analysis.  
-- Damage text like *“Unknown”*, *“Minimal”*, etc. are set to `NULL`.  
-- If opening the CSV in Excel, use **Delimited → Comma** import (not Fixed Width).  
 ## 📊 Before vs. After
 
 **Raw data (sample)**  
@@ -42,7 +36,12 @@ This project demonstrates how I cleaned the messy **Atlantic Hurricanes (Data Cl
 
 **Cleaned data (sample)**  
 ![Cleaned sample](images/Cleaned%20sample.png)
-
+## 📝 Notes
+- Dates are exported as `YYYY-MM-DD`.  
+- `DurationDays` = difference between `StartDate` and `EndDate`.  
+- Wind speeds and pressures are standardized for consistent analysis.  
+- Damage text like *“Unknown”*, *“Minimal”*, etc. are set to `NULL`.  
+- If opening the CSV in Excel, use **Delimited → Comma** import (not Fixed Width).  
 ---
 
 ## 📖 Source
