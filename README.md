@@ -19,6 +19,7 @@ This project demonstrates how I cleaned the messy **Atlantic Hurricanes (Data Cl
    ```sql
    sql/Hurricanes final clean.sql
 
+---
 ##  This script will:
 
 - Normalize messy text, whitespace, and quotes.  
