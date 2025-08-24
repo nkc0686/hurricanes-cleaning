@@ -1,6 +1,22 @@
+/* ============================================================
+   Hurricanes Final Clean
+   Author: Nikki Carlson
+   Last Updated: 2025-08-24
+   Purpose: Normalize raw dbo.Hurricanes into dbo.Hurricanes_Stage
+            and expose dbo.Hurricanes_Final view for analysis.
+   Notes:
+     - Safe to re-run (idempotent).
+     - Requires SQL Server 2017+ (for TRANSLATE).
+     - Adds derived fields (DurationDays, Category).
+============================================================ */
+
 USE HurricanesDB;
 SET NOCOUNT ON;
 SET XACT_ABORT ON;
+
+/* Ensure base table exists */
+IF OBJECT_ID('dbo.Hurricanes','U') IS NULL
+  THROW 50001, 'Raw table dbo.Hurricanes not found.', 1;
 
 BEGIN TRY
   BEGIN TRAN;
@@ -10,9 +26,9 @@ BEGIN TRY
     DROP TABLE dbo.Hurricanes_Stage;
 
   -- maps for TRANSLATE (same length both sides)
-  DECLARE @WS_FROM nchar(4) = NCHAR(194) + NCHAR(160) + NCHAR(8239) + NCHAR(8201); -- Â, NBSP, narrow NBSP, thin space
+  DECLARE @WS_FROM nchar(4) = NCHAR(194) + NCHAR(160) + NCHAR(8239) + NCHAR(8201); -- Ã‚, NBSP, narrow NBSP, thin space
   DECLARE @WS_TO   nchar(4) = N'    ';                                              -- 4 normal spaces
-  DECLARE @Q_FROM  nchar(4) = NCHAR(8216) + NCHAR(8217) + NCHAR(8220) + NCHAR(8221); -- ‘ ’ “ ”
+  DECLARE @Q_FROM  nchar(4) = NCHAR(8216) + NCHAR(8217) + NCHAR(8220) + NCHAR(8221); -- â€˜ â€™ â€œ â€
   DECLARE @Q_TO    nchar(4) = N'''' + N'''' + N'"' + N'"';                           -- ' ' " "
 
   SELECT
@@ -51,7 +67,7 @@ BEGIN TRY
 
   ;WITH Dur AS (
     SELECT RowID,
-           NormDur = TRIM(TRANSLATE(REPLACE(REPLACE(Duration,N'†',''),N' L',''), N'–—', N'--'))
+           NormDur = TRIM(TRANSLATE(REPLACE(REPLACE(Duration,N'â€ ',''),N' L',''), N'â€“â€”', N'--'))
     FROM dbo.Hurricanes_Stage
   ),
   P AS (
@@ -85,7 +101,7 @@ BEGIN TRY
   -- dd-MMM-yy single-day (two hyphens, no comma)
   ;WITH Dur AS (
     SELECT RowID,
-           NormDur = TRIM(TRANSLATE(REPLACE(REPLACE(Duration,N'†',''),N' L',''), N'–—', N'--'))
+           NormDur = TRIM(TRANSLATE(REPLACE(REPLACE(Duration,N'â€ ',''),N' L',''), N'â€“â€”', N'--'))
     FROM dbo.Hurricanes_Stage
   ),
   OnlyDash3 AS (
@@ -126,6 +142,11 @@ BEGIN TRY
                  Wind_speed,
                  CHARINDEX('(', Wind_speed)+1,
                  CHARINDEX('km/h', LOWER(Wind_speed)) - (CHARINDEX('(', Wind_speed)+1))))
+        WHEN CHARINDEX('mph', LOWER(Wind_speed)) > 0 AND CHARINDEX('(', Wind_speed) > 0
+          THEN TRY_CONVERT(int, TRIM(SUBSTRING(
+                 Wind_speed,
+                 CHARINDEX('(', Wind_speed)+1,
+                 CHARINDEX('mph', LOWER(Wind_speed)) - (CHARINDEX('(', Wind_speed)+1))))
         ELSE WindSpeed_kmh
       END
   FROM dbo.Hurricanes_Stage s;
@@ -152,7 +173,7 @@ BEGIN TRY
   ),
   N2 AS (
     SELECT RowID,
-           dmg = LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(dmg_raw,'us$','$'),' usd',' $'),',',''),N'—',' ')))
+           dmg = LTRIM(RTRIM(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(dmg_raw,'us$','$'),' usd',' $'),'u.s.$','$'),',',''),N'â€”',' ')))
     FROM N
   ),
   C AS (
@@ -171,7 +192,7 @@ BEGIN TRY
                  TRY_CONVERT(bigint, ROUND(TRY_CONVERT(decimal(20,6),
                    REPLACE(REPLACE(REPLACE(REPLACE(dmg,'thousand',''),'$',''),'k',''),' ','')) * 1000, 0))
                WHEN REPLACE(REPLACE(dmg,'$',''),' ','') LIKE '%[0-9][0-9][0-9][0-9]%'
-                 THEN TRY_CONVERT(bigint, REPLACE(REPLACE(dmg,'$',''),' ',''))
+                 THEN TRY_CONVERT(bigint, REPLACE(REPLACE(dmg,'$',''),' ','')) 
                ELSE NULL
              END
     FROM N2
@@ -196,13 +217,14 @@ SELECT
   RowID,
   Name              = COALESCE(Name_clean, Name),
   StartDate, EndDate,
+  DurationDays      = DATEDIFF(DAY, StartDate, EndDate),
   WindSpeed_mph, WindSpeed_kmh,
   Pressure_hPa, Pressure_inHg,
   Areas_affected,
-  Deaths = Deaths_int,
+  Deaths            = Deaths_int,
   Damage_USD,
-  Category_raw = Category_int,
-  Category_derived = CASE
+  Category_raw      = Category_int,
+  Category_derived  = CASE
     WHEN WindSpeed_mph IS NULL THEN NULL
     WHEN WindSpeed_mph >= 157 THEN 5
     WHEN WindSpeed_mph >= 130 THEN 4
@@ -211,30 +233,30 @@ SELECT
     WHEN WindSpeed_mph >=  74 THEN 1
     ELSE 0
   END,
-  Category = COALESCE(Category_int,
-    CASE
-      WHEN WindSpeed_mph IS NULL THEN NULL
-      WHEN WindSpeed_mph >= 157 THEN 5
-      WHEN WindSpeed_mph >= 130 THEN 4
-      WHEN WindSpeed_mph >= 111 THEN 3
-      WHEN WindSpeed_mph >=  96 THEN 2
-      WHEN WindSpeed_mph >=  74 THEN 1
-      ELSE 0
-    END)
+  Category = COALESCE(Category_int, 
+                      CASE
+                        WHEN WindSpeed_mph IS NULL THEN NULL
+                        WHEN WindSpeed_mph >= 157 THEN 5
+                        WHEN WindSpeed_mph >= 130 THEN 4
+                        WHEN WindSpeed_mph >= 111 THEN 3
+                        WHEN WindSpeed_mph >=  96 THEN 2
+                        WHEN WindSpeed_mph >=  74 THEN 1
+                        ELSE 0 END)
 FROM dbo.Hurricanes_Stage;
 GO
-SELECT
-  RowID,
-  Name,
-  StartDate = CONVERT(varchar(10), StartDate, 23),
-  EndDate   = CONVERT(varchar(10), EndDate,   23),
-  WindSpeed_mph, WindSpeed_kmh,
-  Pressure_hPa, Pressure_inHg,
-  Areas_affected,
-  Deaths,
-  Damage_USD,
-  Category_raw,
-  Category_derived,
-  Category
+
+/* ===================== 6) QC Checks ===================== */
+-- Quick sanity counts
+SELECT COUNT(*) AS Rows,
+       SUM(CASE WHEN StartDate IS NULL OR EndDate IS NULL THEN 1 ELSE 0 END) AS MissingDates
+FROM dbo.Hurricanes_Final;
+
+-- Range checks
+SELECT MIN(WindSpeed_mph) AS MinMPH, MAX(WindSpeed_mph) AS MaxMPH,
+       MIN(Pressure_hPa) AS Min_hPa, MAX(Pressure_hPa) AS Max_hPa
+FROM dbo.Hurricanes_Final;
+
+-- Sample rows
+SELECT TOP 50 *
 FROM dbo.Hurricanes_Final
 ORDER BY TRY_CAST(RowID AS int);
