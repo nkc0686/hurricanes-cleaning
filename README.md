@@ -19,16 +19,3 @@ This repo shows how I cleaned the messy **Atlantic Hurricanes (Data Cleaning Cha
 **Source**  
 Valery Liamtsau, *Atlantic Hurricanes (Data Cleaning Challenge)*, Kaggle, CC0 1.0.  
 https://www.kaggle.com/datasets/valerylia/atlantic-hurricanes-data-cleaning-challenge
-
-## Repository structure
-
-```text
-hurricanes-cleaning/
-├─ data/
-│  ├─ raw/Hurricanes.csv
-│  └─ clean/hurricanes_clean.csv
-├─ sql/
-│  └─ hurricanes_cleaning.sql
-├─ README.md
-├─ LICENSE              # (optional for your code)
-└─ CITATION.cff         # (optional; credits Kaggle page)
