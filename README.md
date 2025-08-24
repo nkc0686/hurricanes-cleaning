@@ -35,6 +35,13 @@ This project demonstrates how I cleaned the messy **Atlantic Hurricanes (Data Cl
 - Wind speeds and pressures are standardized for consistent analysis.  
 - Damage text like *“Unknown”*, *“Minimal”*, etc. are set to `NULL`.  
 - If opening the CSV in Excel, use **Delimited → Comma** import (not Fixed Width).  
+## 📊 Before vs. After
+
+**Raw data (sample)**  
+![Raw sample](images/Raw%20sample.png)
+
+**Cleaned data (sample)**  
+![Cleaned sample](images/Cleaned%20sample.png)
 
 ---
 
